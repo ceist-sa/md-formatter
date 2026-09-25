@@ -135,6 +135,7 @@ ul, ol { margin: 0 0 0.75em; padding-left: 5.5mm; }
 li { margin-bottom: 0.25em; }
 li > p { margin-bottom: 0.25em; }
 ul li::marker { color: var(--muted); }
+li ul { list-style-type: "–  "; }
 .contains-task-list { list-style: none; padding-left: 0; }
 .checkbox {
   display: inline-block;

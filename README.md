@@ -4,19 +4,24 @@ Turns a Markdown file exported from Notion into a branded PDF, set in Lora.
 
 ## Setup
 
+Requires [uv](https://docs.astral.sh/uv/) and Pango (a system library WeasyPrint needs):
+
 ```bash
-brew install pango            # needed by WeasyPrint
-python3 -m venv .venv
-.venv/bin/pip install -e .
+brew install uv pango
+uv tool install .             # puts `md2pdf` on your PATH
 ```
+
+After changing the code, run `uv tool install --reinstall .` to update the command.
+For development, `uv sync` creates `.venv` with the exact versions in `uv.lock`,
+and `uv run md2pdf …` runs the code in the project folder directly.
 
 ## Usage
 
 ```bash
-.venv/bin/md2pdf "Meu documento 3de419a3db6c804a8555f2eea055d93e.md"
+md2pdf "Meu documento 3de419a3db6c804a8555f2eea055d93e.md"
 # → "Meu documento.pdf" next to the input
 
-.venv/bin/md2pdf input.md -o out.pdf --date "Setembro de 2026"
+md2pdf input.md -o out.pdf --date "Setembro de 2026"
 ```
 
 | Option | Description |
