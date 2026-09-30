@@ -95,12 +95,13 @@ strong { font-weight: 600; }
 .meta {
   display: flex;
   flex-wrap: wrap;
+  row-gap: 0.5mm;
   margin: 3mm 0 0;
   font-size: 9pt;
   color: var(--muted);
 }
-.meta dt { font-variant: small-caps; letter-spacing: 0.05em; margin-right: 1.5mm; }
-.meta dd { margin: 0 6mm 0 0; }
+.meta-item { margin-right: 6mm; }
+.meta-key { font-variant: small-caps; letter-spacing: 0.05em; margin-right: 1.5mm; }
 
 /* ---------- Headings ---------- */
 
@@ -160,6 +161,7 @@ table {
   break-inside: auto;
 }
 thead { display: table-header-group; }
+table.no-header thead { display: none; }
 tr { break-inside: avoid; page-break-inside: avoid; }
 
 th, td {

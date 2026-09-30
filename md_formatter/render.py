@@ -120,6 +120,10 @@ def _annotate_tables(md: MarkdownIt) -> None:
                 tokens[tr].attrJoin("class", "total")
 
             tokens[i].attrJoin("class", "data")
+            # Tables without a header row are written with an empty one.
+            header = [c for r in rows if r and not r[0][2] for c in r]
+            if header and not any(c[1].strip() for c in header):
+                tokens[i].attrJoin("class", "no-header")
             i = end + 1
 
     md.core.ruler.push("annotate_tables", core_rule)
@@ -135,19 +139,23 @@ def _markdown() -> MarkdownIt:
     return md
 
 
-def parse(path: Path) -> Document:
-    text = path.read_text(encoding="utf-8")
+def render_body(body: str) -> str:
+    """Render the Markdown body of a document (everything below the title) to HTML."""
     md = _markdown()
-    title, properties, body = _split_title_and_properties(text)
     body = _render_asides(body, md)
-    body_html = re.sub(
+    return re.sub(
         r'<input class="task-list-item-checkbox"( checked="checked")?[^>]*>',
         lambda m: f'<span class="checkbox{" checked" if m.group(1) else ""}"></span>',
         md.render(body),
     )
+
+
+def parse(path: Path) -> Document:
+    text = path.read_text(encoding="utf-8")
+    title, properties, body = _split_title_and_properties(text)
     return Document(
         title=title or clean_title_from_filename(path),
-        body_html=body_html,
+        body_html=render_body(body),
         properties=properties,
     )
 
@@ -181,16 +189,20 @@ MONTHS_PT = (
 )
 
 
-def format_sign_date(value: str) -> str:
-    """"hoje"/"today" or YYYY-MM-DD -> "2 de outubro de 2026"; anything else is used as written."""
-    if value.strip().lower() in ("hoje", "today"):
-        day = datetime.date.today()
-    else:
-        try:
-            day = datetime.date.fromisoformat(value.strip())
-        except ValueError:
-            return value.strip()
+def format_date(value: str) -> str:
+    """ISO date (or timestamp) -> "2 de outubro de 2026"; anything else is returned as is."""
+    try:
+        day = datetime.date.fromisoformat(value.strip()[:10])
+    except ValueError:
+        return value.strip()
     return f"{day.day} de {MONTHS_PT[day.month - 1]} de {day.year}"
+
+
+def format_sign_date(value: str) -> str:
+    """"hoje"/"today", YYYY-MM-DD, or any text (used as written)."""
+    if value.strip().lower() in ("hoje", "today"):
+        return format_date(datetime.date.today().isoformat())
+    return format_date(value)
 
 
 def _place_date_html(place: str | None, date: str | None) -> str:
@@ -243,10 +255,12 @@ def build_html(
         meta_items.insert(0, ("", date))
     meta_html = ""
     if meta_items:
-        meta_html = '<dl class="meta">' + "".join(
-            (f"<dt>{html.escape(k)}</dt>" if k else "") + f"<dd>{html.escape(v)}</dd>"
+        meta_html = '<div class="meta">' + "".join(
+            '<span class="meta-item">'
+            + (f'<span class="meta-key">{html.escape(k)}</span>' if k else "")
+            + f"{html.escape(v)}</span>"
             for k, v in meta_items
-        ) + "</dl>"
+        ) + "</div>"
 
     title = html.escape(doc.title)
     org = html.escape(organization)
