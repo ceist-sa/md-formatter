@@ -39,7 +39,7 @@
   color: var(--muted);
   letter-spacing: 0.02em;
 }
-.running-header img { height: 8mm; margin-right: 4mm; }
+.running-header img { height: 10.5mm; margin-right: 4mm; }
 .running-header span { margin-left: auto; font-style: italic; }
 
 .running-footer {
@@ -79,7 +79,7 @@ strong { font-weight: 600; }
   margin-bottom: 12mm;
 }
 .title-block .logo {
-  height: 17mm;
+  height: 21mm;
   display: block;
   margin-bottom: 16mm;
 }
