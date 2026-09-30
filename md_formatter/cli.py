@@ -48,6 +48,15 @@ def main(argv: list[str] | None = None) -> int:
         help='add a signature line at the end; repeat for more. Name and role are optional: '
         '"Ana Silva, Presidente", "Ana Silva", ", Tesoureiro", or no value for a blank line',
     )
+    parser.add_argument("--place", help='place for the line above the signatures, e.g. "Lisboa"')
+    parser.add_argument(
+        "--sign-date",
+        metavar="DATE",
+        nargs="?",
+        const="",
+        help='date for the line above the signatures: "hoje", YYYY-MM-DD, or any text. '
+        "With no value (or with only --place), blanks are left to fill in by hand",
+    )
     parser.add_argument("--html", action="store_true", help="also write the intermediate HTML (for debugging)")
     args = parser.parse_args(argv)
 
@@ -66,6 +75,8 @@ def main(argv: list[str] | None = None) -> int:
         lang=args.lang,
         date=args.date,
         signatures=[render.parse_signature(s) for s in args.sign],
+        place=args.place,
+        sign_date=render.format_sign_date(args.sign_date) if args.sign_date else args.sign_date,
     )
     if args.html:
         out.with_suffix(".html").write_text(html_str, encoding="utf-8")

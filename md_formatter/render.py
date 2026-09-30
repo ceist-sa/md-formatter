@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import html
 import re
 from dataclasses import dataclass, field
@@ -174,6 +175,37 @@ def parse_signature(spec: str) -> tuple[str, str]:
     return name.strip(), role.strip()
 
 
+MONTHS_PT = (
+    "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+    "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+)
+
+
+def format_sign_date(value: str) -> str:
+    """"hoje"/"today" or YYYY-MM-DD -> "2 de outubro de 2026"; anything else is used as written."""
+    if value.strip().lower() in ("hoje", "today"):
+        day = datetime.date.today()
+    else:
+        try:
+            day = datetime.date.fromisoformat(value.strip())
+        except ValueError:
+            return value.strip()
+    return f"{day.day} de {MONTHS_PT[day.month - 1]} de {day.year}"
+
+
+def _place_date_html(place: str | None, date: str | None) -> str:
+    """Place and date line; a missing date is drawn as blanks to fill in by hand."""
+    if place is None and date is None:
+        return ""
+    if date:
+        date_html = html.escape(date)
+    else:
+        blank = '<span class="blank {}"></span>'
+        date_html = f'{blank.format("day")} de {blank.format("month")} de {blank.format("year")}'
+    place_html = f"{html.escape(place)}, " if place else ""
+    return f'<p class="place-date">{place_html}{date_html}</p>'
+
+
 def _signatures_html(signatures: list[tuple[str, str]]) -> str:
     if not signatures:
         return ""
@@ -184,7 +216,12 @@ def _signatures_html(signatures: list[tuple[str, str]]) -> str:
         + "</div>"
         for name, role in signatures
     )
-    return f'<section class="signatures">{blocks}</section>'
+    return f'<div class="signatures">{blocks}</div>'
+
+
+def _signoff_html(signatures: list[tuple[str, str]], place: str | None, sign_date: str | None) -> str:
+    inner = _place_date_html(place, sign_date) + _signatures_html(signatures)
+    return f'<section class="signoff">{inner}</section>' if inner else ""
 
 
 def build_html(
@@ -194,6 +231,8 @@ def build_html(
     lang: str,
     date: str | None,
     signatures: list[tuple[str, str]] = (),
+    place: str | None = None,
+    sign_date: str | None = None,
 ) -> str:
     css = (Path(__file__).parent / "style.css").read_text(encoding="utf-8")
     logo = (ASSETS / "logo-dark.png").as_uri()
@@ -232,7 +271,7 @@ def build_html(
 </header>
 <main>
 {doc.body_html}
-{_signatures_html(list(signatures))}
+{_signoff_html(list(signatures), place, sign_date)}
 </main>
 </body>
 </html>

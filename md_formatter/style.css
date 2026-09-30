@@ -243,15 +243,34 @@ del { color: var(--muted); }
 
 /* ---------- Signatures ---------- */
 
+/* Keep the sign-off with the preceding content, never alone on a page. */
+.signoff {
+  margin-top: 16mm;
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
+.place-date {
+  text-align: center;
+  margin: 0;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+.blank {
+  display: inline-block;
+  border-bottom: 0.6pt solid var(--ink);
+  vertical-align: -0.8mm;
+}
+.blank.day { width: 10mm; }
+.blank.month { width: 32mm; }
+.blank.year { width: 14mm; }
+
 .signatures {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   column-gap: 16mm;
   row-gap: 4mm;
-  margin-top: 16mm;
-  break-before: avoid;
-  page-break-before: avoid;
 }
 .signature {
   width: 68mm;
