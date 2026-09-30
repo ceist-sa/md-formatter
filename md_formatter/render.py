@@ -168,7 +168,33 @@ def _font_faces() -> str:
     )
 
 
-def build_html(doc: Document, *, organization: str, lang: str, date: str | None) -> str:
+def parse_signature(spec: str) -> tuple[str, str]:
+    """"Name, Role" -> (name, role). Either part may be empty; the role may contain commas."""
+    name, _, role = spec.partition(",")
+    return name.strip(), role.strip()
+
+
+def _signatures_html(signatures: list[tuple[str, str]]) -> str:
+    if not signatures:
+        return ""
+    blocks = "".join(
+        '<div class="signature"><div class="signature-line"></div>'
+        + (f'<div class="signature-name">{html.escape(name)}</div>' if name else "")
+        + (f'<div class="signature-role">{html.escape(role)}</div>' if role else "")
+        + "</div>"
+        for name, role in signatures
+    )
+    return f'<section class="signatures">{blocks}</section>'
+
+
+def build_html(
+    doc: Document,
+    *,
+    organization: str,
+    lang: str,
+    date: str | None,
+    signatures: list[tuple[str, str]] = (),
+) -> str:
     css = (Path(__file__).parent / "style.css").read_text(encoding="utf-8")
     logo = (ASSETS / "logo-dark.png").as_uri()
     icon = (ASSETS / "icon-dark.png").as_uri()
@@ -206,6 +232,7 @@ def build_html(doc: Document, *, organization: str, lang: str, date: str | None)
 </header>
 <main>
 {doc.body_html}
+{_signatures_html(list(signatures))}
 </main>
 </body>
 </html>

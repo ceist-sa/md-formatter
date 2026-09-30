@@ -240,3 +240,33 @@ img { max-width: 100%; }
 main img { display: block; margin: 1em auto; }
 
 del { color: var(--muted); }
+
+/* ---------- Signatures ---------- */
+
+.signatures {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  column-gap: 16mm;
+  row-gap: 4mm;
+  margin-top: 16mm;
+  break-before: avoid;
+  page-break-before: avoid;
+}
+.signature {
+  width: 68mm;
+  padding-top: 18mm;
+  text-align: center;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.signature-line {
+  border-top: 0.6pt solid var(--ink);
+  margin-bottom: 2mm;
+}
+.signature-name { font-weight: 500; }
+.signature-role {
+  font-size: 9pt;
+  font-style: italic;
+  color: var(--muted);
+}

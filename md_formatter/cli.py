@@ -38,6 +38,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--org", default=DEFAULT_ORG, help="organization name shown in the footer")
     parser.add_argument("--date", help="date or subtitle shown under the title")
     parser.add_argument("--lang", default="pt", help="document language, used for hyphenation (default: pt)")
+    parser.add_argument(
+        "--sign",
+        metavar='"NAME, ROLE"',
+        nargs="?",
+        const="",
+        action="append",
+        default=[],
+        help='add a signature line at the end; repeat for more. Name and role are optional: '
+        '"Ana Silva, Presidente", "Ana Silva", ", Tesoureiro", or no value for a blank line',
+    )
     parser.add_argument("--html", action="store_true", help="also write the intermediate HTML (for debugging)")
     args = parser.parse_args(argv)
 
@@ -50,7 +60,13 @@ def main(argv: list[str] | None = None) -> int:
     out: Path = args.output or src.with_name(render.clean_title_from_filename(src).replace("/", "-") + ".pdf")
 
     doc = render.parse(src)
-    html_str = render.build_html(doc, organization=args.org, lang=args.lang, date=args.date)
+    html_str = render.build_html(
+        doc,
+        organization=args.org,
+        lang=args.lang,
+        date=args.date,
+        signatures=[render.parse_signature(s) for s in args.sign],
+    )
     if args.html:
         out.with_suffix(".html").write_text(html_str, encoding="utf-8")
     render.render_pdf(html_str, out, base_url=src.resolve())
