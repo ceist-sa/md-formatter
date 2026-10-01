@@ -26,6 +26,16 @@ def load_config() -> dict:
     return config
 
 
+def save_config(updates: dict) -> None:
+    """Merge updates into the config file (never the environment overrides), readable only by the user."""
+    config = json.loads(CONFIG_PATH.read_text()) if CONFIG_PATH.is_file() else {}
+    config.update(updates)
+    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    CONFIG_PATH.touch(mode=0o600, exist_ok=True)
+    CONFIG_PATH.chmod(0o600)
+    CONFIG_PATH.write_text(json.dumps(config, indent=2, ensure_ascii=False))
+
+
 def setup() -> int:
     from .notion import Notion, NotionError, extract_id
 
@@ -41,10 +51,7 @@ def setup() -> int:
         print(f"error: {e}", file=sys.stderr)
         return 1
 
-    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    CONFIG_PATH.touch(mode=0o600, exist_ok=True)
-    CONFIG_PATH.chmod(0o600)
-    CONFIG_PATH.write_text(json.dumps({"token": token, "database": database_id}, indent=2))
+    save_config({"token": token, "database": database_id})
     print(f"\nConnected: {len(pages)} pages found. Saved to {CONFIG_PATH}")
     return 0
 
@@ -72,6 +79,81 @@ def choose_page(pages: list[dict]) -> dict | None:
         use_shortcuts=False,
         instruction=" ",
     ).ask()
+
+
+class Cancelled(Exception):
+    pass
+
+
+def _ask(question):
+    """Run a questionary prompt; Ctrl-C (None) cancels the whole run."""
+    answer = question.ask()
+    if answer is None:
+        raise Cancelled
+    return answer
+
+
+def _signer_label(signer: dict) -> str:
+    return ", ".join(filter(None, (signer.get("name"), signer.get("role")))) or "(blank line)"
+
+
+def ask_signoff(args: argparse.Namespace, config: dict) -> None:
+    """Ask for signatures and the place/date line, filling args.sign / place / sign_date.
+    Signers and the place are remembered in the config for next time."""
+    import questionary
+
+    if not _ask(questionary.confirm("Add signature lines?", default=False)):
+        return
+
+    saved: list[dict] = config.get("signers", [])
+    chosen: list[dict] = []
+    if saved:
+        chosen = _ask(
+            questionary.checkbox(
+                "Who signs? (space to select, Enter to confirm)",
+                choices=[questionary.Choice(_signer_label(s), value=s) for s in saved],
+            )
+        )
+    new: list[dict] = []
+
+    def add_signer() -> None:
+        name = _ask(questionary.text("Name (leave empty for none):")).strip()
+        role = _ask(questionary.text("Role (optional):")).strip()
+        new.append({"name": name, "role": role})
+
+    if not chosen:
+        add_signer()
+    while _ask(questionary.confirm("Add someone else?", default=False)):
+        add_signer()
+    signers = chosen + new
+    args.sign = [f"{s['name']}, {s['role']}" for s in signers]
+
+    kind = _ask(
+        questionary.select(
+            "Place and date line above the signatures?",
+            choices=[
+                questionary.Choice("Yes, date left blank to fill in by hand", "blank"),
+                questionary.Choice("Yes, with today's date", "today"),
+                questionary.Choice("Yes, with another date", "other"),
+                questionary.Choice("No", "none"),
+            ],
+        )
+    )
+    place = config.get("place", "Lisboa")
+    if kind != "none":
+        place = _ask(questionary.text("Place:", default=place)).strip()
+        args.place = place or None
+        if kind == "today":
+            args.sign_date = "hoje"
+        elif kind == "other":
+            args.sign_date = _ask(questionary.text("Date (YYYY-MM-DD or as it should be written):")).strip()
+        else:
+            args.sign_date = ""
+
+    # Most recently used first; people with a name only, blank lines aren't worth remembering.
+    remembered = [s for s in signers if s["name"]]
+    remembered += [s for s in saved if s not in remembered]
+    save_config({"signers": remembered[:20], "place": place})
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -109,10 +191,14 @@ def main(argv: list[str] | None = None) -> int:
         if page is None:
             return 1
         title = page_title(page) or "Sem título"
+        if not (args.sign or args.place or args.sign_date is not None) and sys.stdin.isatty():
+            ask_signoff(args, config)
         print(f"Fetching “{title}”…", file=sys.stderr)
         body = to_markdown(client.page_markdown(page["id"]), title=title)
     except NotionError as e:
         print(f"error: {e}", file=sys.stderr)
+        return 1
+    except Cancelled:
         return 1
 
     doc = render.Document(

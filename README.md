@@ -25,6 +25,7 @@ and `uv run md2pdf …` runs the code in the project folder directly.
 3. Run `notion2pdf --setup`, paste the integration secret and the database link.
 
 The secret and database are saved in `~/.config/notion2pdf/config.json`, readable only by you.
+The people who signed before and the last place are remembered there too, so next time you can tick them from a list.
 The `NOTION_TOKEN` and `NOTION_DATABASE_ID` environment variables override it.
 
 ## Usage
@@ -32,9 +33,11 @@ The `NOTION_TOKEN` and `NOTION_DATABASE_ID` environment variables override it.
 ```bash
 notion2pdf
 # → menu of the database's pages, most recently edited first; type to filter, Enter to choose
+# → asks whether to add signatures and a place/date line
 # → "<page title>.pdf" in the current folder
 
 notion2pdf --place Lisboa --sign "Ana Silva, Presidente" --sign "João Costa, Tesoureiro"
+# → signatures given as options: no questions asked
 
 md2pdf "Meu documento 3de419a3db6c804a8555f2eea055d93e.md"
 # → "Meu documento.pdf" next to the input
